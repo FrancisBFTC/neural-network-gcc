@@ -1,6 +1,7 @@
 struct Neural {
 	Layer* camadas;
 	int quantCamadas = 0;
+	double erroTotal = 0.0;
 	
 	// Inicia as camadas
 	void iniciaCamadas(int layers[], int size){
@@ -23,38 +24,47 @@ struct Neural {
 	}
 	
 	// Predizer os resultados da rede neural
-	double* predizer(double* entradas){
-		double* saidas = entradas;			// = (double*) malloc(size * sizeof(double))
+	double* predizer(double* entradas){	
+		double* saidas = entradas;
 		for(int i = 0; i < quantCamadas; i++)
 			saidas = camadas[i].avancar(saidas);
 		return saidas;
 	}
 	
-	int testar(double entradas[]){
-		return round(predizer(entradas)[0]);
+	int testar(double predicao){
+		if (predicao > 0.4 && predicao <= 0.6) {
+		    cout << "Indefinido. Precisa ajustar os parametros da rede neural." << endl;
+		    return -1;
+		}
+		return round(predicao);
 	}
 	
 	// Treinamento da rede neural
-	void treinar(int quantEntradas, double** entradas, double** rotulos, int epocas, double taxaAprendizagem){
+	void treinar(int quantEntradas, double** entradas, double** rotulos, int epocas, double taxaAprendizagem){	//double** rotulos
 		for(int epoca = 0; epoca < epocas; epoca++){
 			for(int i = 0; i < quantEntradas; i++){
 				double* saidas = predizer(entradas[i]);
-				double** deltas = retropropagar(saidas, rotulos[i]);
+				double** deltas = retropropagar(saidas, rotulos[i]);	//rotulos[i]
 				atualizaPesos(deltas, entradas[i], taxaAprendizagem);
+	            taxaAprendizagem = taxaAprendizagem / (1 + epoca / epocas);
+	            
+	            cout << "Epoca: " << epoca + 1 << ", Erro Total: " << erroTotal << endl;
 			}
 		}
 	}
 	
 	// Propagação para trás (Back Propagation - Otimização de erros)
-	double** retropropagar(double* saidas, double* rotulos){
+	double** retropropagar(double* saidas, double* rotulos){	//double* rotulos
 		double** deltas = (double**) malloc(quantCamadas * sizeof(double));
+		erroTotal = 0.0;
 		
 		for(int j = quantCamadas - 1; j >= 0; j--){
 			deltas[j] = (double*) malloc(camadas[j].quantNeuronios * sizeof(double));
 			for(int k = 0; k < camadas[j].quantNeuronios; k++){
-				cout << "Neuronio {" << k << "} -> Camada {" << j << "}" << ", Rotulo: " << rotulos[0] << ", Saida: " << saidas[0] << endl;
 				if(j == quantCamadas - 1){
 					deltas[j][k] = saidas[k] - rotulos[k];
+					erroTotal += pow(deltas[j][k], 2);
+					
 					cout << "\nCAMADA OCULTA DA BACKPROPAGATION:" << endl;
 					cout << "\tDelta {"<< j <<"}{"<< k <<"}:" << deltas[j][k] << endl;
 				}else{
@@ -85,6 +95,20 @@ struct Neural {
 			}
 		}
 	}
+
+	/*
+	void atualizaPesos(double** deltas, double** entradasCamadas, double taxaAprendizagem) {
+	    for (int j = 0; j < quantCamadas; j++) {
+	        double* camadaEntradas = entradasCamadas[j];
+	        for (int k = 0; k < camadas[j].quantNeuronios; k++) {
+	            for (int l = 0; l < camadas[j].neuronio[k].quantEntradas; l++) {
+	                camadas[j].neuronio[k].pesos[l] -= taxaAprendizagem * deltas[j][k] * camadaEntradas[l];
+	            }
+	            camadas[j].neuronio[k].bias -= taxaAprendizagem * deltas[j][k];
+	        }
+	    }
+	}	
+	*/
 	
 	// Otimização de saída da atualização
 	double sigmoidDerivative(double x){

@@ -11,10 +11,10 @@ struct Layer{
     }
 
     // Avançar camadas (Forward Propagation)
-    double* avancar(double* entradas){
+    double* avancar(double* entradas){;
         double* saidas = (double*) malloc(quantNeuronios * sizeof(double));
         for(int i = 0; i < quantNeuronios; i++)
-            saidas[i] = neuronio[i].ativar(entradas);
+        	saidas[i] = neuronio[i].ativar(entradas);
         return saidas;
     }
 };
