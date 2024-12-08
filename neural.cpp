@@ -1,7 +1,4 @@
 #include "src/neuralnet.h"
-#include <stdio.h>
-#include <string>
-#include <sstream>
 
 // Inclui a biblioteca para leitura
 #define STB_IMAGE_IMPLEMENTATION
@@ -28,80 +25,8 @@ void create_grayscale_tensor(unsigned char* gray_image, double* tensor, int widt
     }
 }
 
-double* get_tensor(char const* filename){
-	stringstream imgs;
-	imgs << filename << ".png";
-	int width1, height1, channels1;
-	unsigned char *rgb_image1 = stbi_load("imagem_16x16.png", &width1, &height1, &channels1, 3);
-    if (!rgb_image1) {
-        printf("Erro ao carregar a imagem\n");
-        return {};
-    }
-    
-    printf("Imagem carregada: %dx%d, canais: %d\n", width1, height1, channels1);
-    
-    // Criar uma imagem em escala de cinza
-    unsigned char *gray_image1 = (unsigned char*)malloc(width1 * height1);
-    rgb_to_grayscale(rgb_image1, gray_image1, width1, height1);
-    
-     // Exibir os valores de escala de cinza
-    printf("Imagem em escala de cinza:\n");
-    for (int y = 0; y < height1; y++) {
-        for (int x = 0; x < width1; x++) {
-            printf("%3d ", gray_image1[y * width1 + x]);
-        }
-        printf("\n");
-    }
-    
-    imgs.str("");
-    imgs << filename << "_gray" << ".png";
-    
-    // Salva a imagem em escala de cinza
-    if (stbi_write_png("imagem_16x16_cinza.png", width1, height1, 1, gray_image1, width1) == 0) {
-        printf("Erro ao salvar a imagem em escala de cinza\n");
-    } else {
-        printf("Imagem em escala de cinza salva como 'imagem_16x16_cinza.png'\n\n");
-    }
-	
-	// Criar o tensor de escala de cinza
-    double* tensor1 = (double*)malloc(width1 * height1 * sizeof(double));
-    create_grayscale_tensor(gray_image1, tensor1, width1, height1);   
-    
-    // Exibir os valores do tensor
-    printf("Tensor de escala de cinza (normalizado):\n");
-    for (int y = 0; y < height1; y++) {
-        for (int x = 0; x < width1; x++) {
-            printf("%.2f ", tensor1[y * width1 + x]);
-        }
-        printf("\n");
-    }
-    //stbi_image_free(rgb_image1);
-    //free(gray_image1);
-    
-    return tensor1;
-}
-
-int main()
-{
-	/*
-	char const *filename = "imagem_16x16.png";
-	char const *filename_gray = "imagem_16x16_cinza.png";
-	
-	int width, height, channels;
-    // Carregar a imagem
-    unsigned char* rgb_image = stbi_load(filename, &width, &height, &channels, 3);
-    if (!rgb_image) {
-        printf("Erro ao carregar a imagem\n");
-        return 1;
-    }
-    
-    printf("Imagem carregada: %dx%d, canais: %d\n", width, height, channels);
-    
-    // Criar uma imagem em escala de cinza
-    unsigned char* gray_image = (unsigned char*)malloc(width * height);
-    rgb_to_grayscale(rgb_image, gray_image, width, height);
-    
-    // Exibir os valores de escala de cinza
+void show_matrix(unsigned char* gray_image, int width, int height){
+	// Exibir os valores de escala de cinza
     printf("Imagem em escala de cinza:\n");
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
@@ -109,50 +34,54 @@ int main()
         }
         printf("\n");
     }
+}
+
+int main()
+{
+	const char *filename = "imagem_16x16.png";
+	const char *filename_gray = "imagem_16x16_cinza.png";
+	int width, height, channels;
+	
+    // Carregar a imagem
+    unsigned char* rgb_image = stbi_load("imagem_16x16.png", &width, &height, &channels, 3);
+    printf("Imagem carregada: %dx%d, canais: %d\n", width, height, channels);
+    unsigned char* gray_image = (unsigned char*)malloc(width * height * sizeof(char));
+    rgb_to_grayscale(rgb_image, gray_image, width, height);
+	show_matrix(gray_image, width, height);
 	
 	// Salva a imagem em escala de cinza
     if (stbi_write_png(filename_gray, width, height, 1, gray_image, width) == 0) {
         printf("Erro ao salvar a imagem em escala de cinza\n");
     } else {
-        printf("Imagem em escala de cinza salva como '%s'\n\n", filename_gray);
+        printf("Imagem em escala de cinza salva como 'imagem_16x16_cinza.png'\n\n");
     }
 	
 	// Criar o tensor de escala de cinza
     double* tensor = (double*)malloc(width * height * sizeof(double));
     create_grayscale_tensor(gray_image, tensor, width, height);   
-    
     // Exibir os valores do tensor
     printf("Tensor de escala de cinza (normalizado):\n");
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
+    for (int y = 0; y < width; y++) {
+        for (int x = 0; x < height; x++) {
             printf("%.2f ", tensor[y * width + x]);
         }
         printf("\n");
     }
-    */
 
-
-	double* tensor = get_tensor("imagem_16x16");
-	int length = 256;
-	
 	// Alocar dinamicamente a matriz de entradas
-	//int length = width * height;
+	int length = width * height;
 	int rows = 1, cols = length;
 	double **entradas = (double**) malloc(rows * sizeof(double *));
 	for (int i = 0; i < rows; i++)
 	    entradas[i] = tensor; //(double*) malloc(cols * sizeof(double));
 	
-	// Preencher as entradas com os valores específicos
-	//entradas[0][0] = 0.8; entradas[0][1] = 0.8; entradas[0][2] = 0.8;
-	//entradas[1][0] = 0.4; entradas[1][1] = 0.4; entradas[1][2] = 0.4;
-	//entradas[2][0] = 0.2; entradas[2][1] = 0.2; entradas[2][2] = 0.2;
-	
-	// Alocar dinamicamente a matriz de rótulos
-	rows = 1; cols = 1;
-	double **rotulos = (double**) malloc(rows * sizeof(double *));
-	for (int i = 0; i < rows; i++)
-	    rotulos[i] = (double*) malloc(cols * sizeof(double));
-	    
+	// Criar rótulos
+    double** rotulos = (double**)malloc(rows * sizeof(double*));
+    for (int i = 0; i < rows; i++) {
+        rotulos[i] = (double*)malloc(1 * sizeof(double));
+        rotulos[i][0] = 1; // Exemplo de rótulo
+    }
+    
 	// Preencher os rótulos com os valores específicos
 	rotulos[0][0] = 1; //rotulos[1][0] = 0; rotulos[2][0] = 0;
     
@@ -161,16 +90,18 @@ int main()
     camadas[1] = 4;			// Quantidade de neurônios na camada oculta
     camadas[2] = 1;			// Quantidade de neurônios na camada de saída
     double taxaAprendizagem = 0.5;
-    int epocas = 100;
+    int epocas = 200;
 
-    Neural RedeNeural;
+	Neural RedeNeural;
     RedeNeural.iniciaCamadas(camadas, sizeof(camadas) / sizeof(camadas[0]));
-    RedeNeural.treinar(1, (double**)entradas, (double**)rotulos, epocas, taxaAprendizagem);
-	
-	//double* tensor1 = get_tensor("cruz_16x16");
+    RedeNeural.treinar(rows, entradas, rotulos, epocas, taxaAprendizagem);
     
-    //double teste1[3] = {0.8, 0.8, 0.8};
-    //double teste2[3] = {0.4, 0.4, 0.4};
+    // Carregar a imagem
+    rgb_image = stbi_load("preto_16x16.png", &width, &height, &channels, 3);
+    printf("\nImagem carregada: %dx%d, canais: %d\n", width, height, channels);
+    rgb_to_grayscale(rgb_image, gray_image, width, height);
+    create_grayscale_tensor(gray_image, tensor, width, height); 
+    
     double predicao1 = RedeNeural.predizer(tensor)[0];
     //double predicao2 = RedeNeural.predizer(tensor1)[0];
     int resultado1 = RedeNeural.testar(predicao1);
@@ -180,13 +111,17 @@ int main()
 		cout << endl;
 	    printf("Predicao 1: %f, Resultado 1: %d\n", predicao1, resultado1);
 	    //printf("Predicao 2: %f, Resultado 2: %d\n", predicao2, resultado2);		
-	}
-    
-	free(RedeNeural.camadas);
+	}	
 	
-	// Liberar memória
-    //stbi_image_free(rgb_image);
-    //free(gray_image);
+	// Liberar recursos
+    free(RedeNeural.camadas);
+    for (int i = 0; i < rows; i++) {
+        free(rotulos[i]);
+    }
+    free(rotulos);
+    free(tensor);
+    stbi_image_free(rgb_image);
+    free(gray_image);
     free(tensor);
     //free(tensor1);
 	

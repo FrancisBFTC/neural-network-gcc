@@ -6,18 +6,18 @@ struct Neural {
 	// Inicia as camadas
 	void iniciaCamadas(int layers[], int size){
 		quantCamadas = size-1;
-		cout << "Rede Neural [Main] -> Numero de camadas: " << size << endl;
+		//cout << "Rede Neural [Main] -> Numero de camadas: " << size << endl;
 		
 		camadas = (Layer*) malloc(sizeof(Layer) * quantCamadas);
 		for(int i = 0; i < size; i++)
 			camadas[i].inicializa(layers[i + 1], layers[i]);
 		
 		for(int i = 0; i < quantCamadas; i++){
-			cout << "\tCamada " << i+1 << " -> Numero de neuronios: " << camadas[i].quantNeuronios << endl;
+			//cout << "\tCamada " << i+1 << " -> Numero de neuronios: " << camadas[i].quantNeuronios << endl;
 			for(int j = 0; j < camadas[i].quantNeuronios; j++){
-				cout << "\t\tNeuronio " << j << " -> Numero de entradas: " << camadas[i].neuronio[j].quantEntradas << " (camada " << i << ")"<< endl;
+				//cout << "\t\tNeuronio " << j << " -> Numero de entradas: " << camadas[i].neuronio[j].quantEntradas << " (camada " << i << ")"<< endl;
 				for(int w = 0; w < camadas[i].neuronio[j].quantEntradas; w++){
-					cout << "\t\t\tEntrada " << w << " -> Peso: " << camadas[i].neuronio[j].pesos[w] << endl;
+					//cout << "\t\t\tEntrada " << w << " -> Peso: " << camadas[i].neuronio[j].pesos[w] << endl;
 				}
 			}
 		}
