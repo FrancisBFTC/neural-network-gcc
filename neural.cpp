@@ -25,7 +25,7 @@ int main()
     
     int camadas[] = {3, 4, 1};
     double taxaAprendizagem = 0.5;
-    int epocas = 100;
+    int epocas = 200;
 
     Neural RedeNeural;
     RedeNeural.iniciaCamadas(camadas, sizeof(camadas) / sizeof(camadas[0]));
