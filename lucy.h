@@ -63,7 +63,7 @@ struct Lucy {
 					network[index].iniciar(camadas, size);
 				}
 				
-				network[index].treinar(rows, inputs, rotulos, 20000, 0.01);
+				network[index].treinar(rows, inputs, rotulos, 1000, 0.01);
 				
 				// Liberar recursos
 	    		close_image();
@@ -82,7 +82,8 @@ struct Lucy {
 	void show_response(int model, const char* filename){
 		int size = 0;
 		double* tensor = create_tensor(filename, &size, true);
-	    double predicao1 = network[model].predizer(tensor)[0];
+		int x = network[model].quantCamadas;
+	    double predicao1 = network[model].predizer(tensor)[x][0];
 	    int resultado1 = network[model].testar(predicao1);
 	    printf("Predicao: %f, Resultado: %s\n", predicao1, network[model].labels[resultado1]);
 	    free(tensor);
@@ -91,7 +92,8 @@ struct Lucy {
 	char* get_response(int model, const char* filename){
 		int size = 0;
 		double* tensor = create_tensor(filename, &size, true);
-	    double predicao1 = network[model].predizer(tensor)[0];
+		int x = network[model].quantCamadas;
+	    double predicao1 = network[model].predizer(tensor)[x][0];
 	    int resultado1 = network[model].testar(predicao1);
 	    free(tensor);
 	    return (char*) network[model].labels[resultado1];

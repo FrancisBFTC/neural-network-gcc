@@ -25,11 +25,12 @@ struct Neural {
 	}
 	
 	// Predizer os resultados da rede neural
-	double* predizer(double* entradas){	
-		double* saidas = entradas;
+	double** predizer(double* input){
+		double** output = (double**) malloc((quantCamadas + 1) * sizeof(double *));	
+		output[0] = input;
 		for(int i = 0; i < quantCamadas; i++)
-			saidas = camadas[i].avancar(saidas);
-		return saidas;
+			output[i + 1] = camadas[i].avancar(output[i]);
+		return output;
 	}
 	
 	int testar(double predicao){
@@ -44,7 +45,7 @@ struct Neural {
 	void treinar(int quantEntradas, double** entradas, double** rotulos, int epocas, double taxaAprendizagem){	//double** rotulos
 		for(int epoca = 0; epoca < epocas; epoca++){
 			for(int i = 0; i < quantEntradas; i++){
-				double* saidas = predizer(entradas[i]);
+				double** saidas = predizer(entradas[i]);
 				double** deltas = retropropagar(saidas, rotulos[i]);
 				atualizaPesos(deltas, entradas[i], taxaAprendizagem);
 	            taxaAprendizagem = taxaAprendizagem / (1 + epoca / epocas);
@@ -59,7 +60,7 @@ struct Neural {
 	}
 	
 	// Propagação para trás (Back Propagation - Otimização de erros)
-	double** retropropagar(double* saidas, double* rotulos){	//double* rotulos
+	double** retropropagar(double** saidas, double* rotulos){	//double* rotulos
 		double** deltas = (double**) malloc(quantCamadas * sizeof(double));
 		erroTotal = 0.0;
 		
@@ -67,7 +68,7 @@ struct Neural {
 			deltas[j] = (double*) malloc(camadas[j].quantNeuronios * sizeof(double));
 			for(int k = 0; k < camadas[j].quantNeuronios; k++){
 				if(j == quantCamadas - 1){
-					deltas[j][k] = saidas[k] - rotulos[k];
+					deltas[j][k] = saidas[j + 1][k] - rotulos[k];
 					erroTotal += pow(deltas[j][k], 2);
 					
 					//cout << "quantNeuronios: " << camadas[j].quantNeuronios<< endl;
@@ -80,7 +81,7 @@ struct Neural {
                     for (int l = 0; l < camadas[j + 1].quantNeuronios; l++)
                         error += deltas[j + 1][l] * camadas[j + 1].neuronio[l].pesos[k];
                     //cout << "ENTRADA DA RETROPROPAGACAO" << endl;
-                    double ativacao = camadas[j].neuronio[k].ativar(saidas, 1);
+                    double ativacao = saidas[j + 1][k]; //camadas[j].neuronio[k].ativar(saidas, 1);
                     double otimizacao = sigmoidDerivative(ativacao);
                     deltas[j][k] = error * otimizacao;
                     //cout << "\tDelta {"<< j <<"}{"<< k <<"}: " << deltas[j][k] << ", Error: " << error << ", Optimization: " << otimizacao << endl;
