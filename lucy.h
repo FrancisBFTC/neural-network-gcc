@@ -1,19 +1,27 @@
 #include "src/neuralnet.h"
 #include "src/tensor.h"
-
-#include <windows.h>
-#include <string.h>
-
-char** list_files(const char*, int*);
+#include "src/files.h"
 
 struct Lucy {
 	
-	double** create_input(int rows, int *cols, int index, char** filename){
+	Neural* network;
+	int networkAmmt = 0;
+	
+	void initialize_network(int dataset_count){
+		network = (Neural*) malloc(dataset_count * sizeof(Neural));
+		networkAmmt = dataset_count;
+	}
+	
+	double** create_input(int rows, int *cols, int index, char** filename, const char* path){
 		int length; 
+		stringstream pathfile;
 		double** tensor = (double**) malloc(rows * sizeof(double *));
 		for(int x = 0; x < rows; x++){
-			printf("Carregando arquivo: %s ...\n", filename[x+index]);
-			tensor[x] = create_tensor(filename[x+index], &length, false);
+			pathfile << path << "/" << filename[x+index];
+			const char* imagename = pathfile.str().c_str();
+			printf("Carregando arquivo: %s ...\n", imagename);
+			tensor[x] = create_tensor(imagename, &length, true);
+			pathfile.str("");
 		}
 		*cols = length;
 		return tensor;
@@ -26,13 +34,11 @@ struct Lucy {
 	    return rotulos;
 	}
 	
-	Neural create_model(const char* path, const char* pos_label, const char* neg_label){
+	void create_model(int index, const char* path, const char* pos_label, const char* neg_label){
 		int size = 4;
 		int rows = 2;
 		int cols;
 		int ammount = 0;
-		int camadas[size];
-		Neural RedeNeural;
 		
 		// Chama a função para listar arquivos
     	char** files = list_files(path, &ammount);
@@ -43,37 +49,52 @@ struct Lucy {
 			double** rotulos = create_label(rows, 1);
 			rotulos[0][0] = 1;
 			rotulos[1][0] = 0;
-			RedeNeural.labels[1] = pos_label;
-			RedeNeural.labels[0] = neg_label;
+			
+			network[index].labels[1] = pos_label; //descriptions[0];
+			network[index].labels[0] = neg_label; //desc;
 			int rows_old = rows;
 			    
     		for (int i = 0; i < ammount; i+=rows) {
     			rows = (rows + i > ammount) ? ammount - i : rows;
-	            double** inputs = create_input(rows, &cols, i, files);
-	            printf("Valor: %d\n", i);
+	            double** inputs = create_input(rows, &cols, i, files, path);
 	            
-				if(!i){
-					camadas[0] = cols;
-					camadas[1] = 8;
-					camadas[2] = 5;
-					camadas[3] = 1;
-					RedeNeural.iniciar(camadas, size);
+				if(i == 0){
+					int camadas[size] = {cols, 8, 5, 1}; 
+					network[index].iniciar(camadas, size);
 				}
 				
-				RedeNeural.treinar(rows, inputs, rotulos, 10, 0.01);
+				network[index].treinar(rows, inputs, rotulos, 20000, 0.01);
 				
 				// Liberar recursos
 	    		close_image();
 				close_inputs(inputs, rows);
         	}
         	
+        	// Liberar recursos
         	close_inputs(rotulos, rows_old);
         	close_files(files, ammount);
 		}else{
 			printf("Nenhum arquivo encontrado ou erro ao acessar a pasta.\n");
 		}
-		
-	    return RedeNeural;
+	
+	}
+	
+	void show_response(int model, const char* filename){
+		int size = 0;
+		double* tensor = create_tensor(filename, &size, true);
+	    double predicao1 = network[model].predizer(tensor)[0];
+	    int resultado1 = network[model].testar(predicao1);
+	    printf("Predicao: %f, Resultado: %s\n", predicao1, network[model].labels[resultado1]);
+	    free(tensor);
+	}
+	
+	char* get_response(int model, const char* filename){
+		int size = 0;
+		double* tensor = create_tensor(filename, &size, true);
+	    double predicao1 = network[model].predizer(tensor)[0];
+	    int resultado1 = network[model].testar(predicao1);
+	    free(tensor);
+	    return (char*) network[model].labels[resultado1];
 	}
 	
 	void close_inputs(double** inputs, int size){
@@ -88,44 +109,10 @@ struct Lucy {
 	    free(files);
 	}
 	
+	void close_network(){
+		for(int i = 0; i < networkAmmt; i++)
+			free(network[i].camadas);
+		free(network);
+	}
+	
 };
-
-// Função para listar os arquivos em uma pasta
-char** list_files(const char* folder, int* ammount) {
-    WIN32_FIND_DATA datas;
-    HANDLE hFind;
-    char path[256];
-    char** files = NULL;
-    int counter = 0;
-
-    // Monta o caminho com o padrão "*"
-    snprintf(path, sizeof(path), "%s\\*", folder);
-
-    // Inicia a busca
-    hFind = FindFirstFile(path, &datas);
-    if (hFind == INVALID_HANDLE_VALUE) {
-        printf("Erro ao acessar o diretorio.\n");
-        *ammount = 0;
-        return NULL;
-    }
-
-    do {
-        // Ignora diretórios
-        if (!(datas.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
-            counter++;
-            files = (char**) realloc(files, counter * sizeof(char*));
-            if (files == NULL) {
-                perror("Erro ao alocar memoria");
-                FindClose(hFind);
-                *ammount = 0;
-                return NULL;
-            }
-            files[counter - 1] = strdup(datas.cFileName); // Duplica o nome do arquivo
-        }
-    } while (FindNextFile(hFind, &datas) != 0);
-
-    FindClose(hFind);
-
-    *ammount = counter;
-    return files;
-}

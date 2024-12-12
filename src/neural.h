@@ -10,7 +10,7 @@ struct Neural {
 		//cout << "Rede Neural [Main] -> Numero de camadas: " << size << endl;
 		
 		camadas = (Layer*) malloc(sizeof(Layer) * quantCamadas);
-		for(int i = 0; i < size; i++)
+		for(int i = 0; i < quantCamadas; i++)
 			camadas[i].inicializa(layers[i + 1], layers[i]);
 		
 		for(int i = 0; i < quantCamadas; i++){
@@ -79,7 +79,8 @@ struct Neural {
 					double error = 0.0;
                     for (int l = 0; l < camadas[j + 1].quantNeuronios; l++)
                         error += deltas[j + 1][l] * camadas[j + 1].neuronio[l].pesos[k];
-                    double ativacao = camadas[j].neuronio[k].ativar(saidas);
+                    //cout << "ENTRADA DA RETROPROPAGACAO" << endl;
+                    double ativacao = camadas[j].neuronio[k].ativar(saidas, 1);
                     double otimizacao = sigmoidDerivative(ativacao);
                     deltas[j][k] = error * otimizacao;
                     //cout << "\tDelta {"<< j <<"}{"<< k <<"}: " << deltas[j][k] << ", Error: " << error << ", Optimization: " << otimizacao << endl;

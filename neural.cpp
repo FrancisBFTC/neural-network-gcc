@@ -1,20 +1,15 @@
 #include "lucy.h" 
 
 int main()
-{
-
+{	
 	Lucy lucy;
-
-	int size = 0;
-	Neural modelo = lucy.create_model("quadrados", "E UM QUADRADO", "NAO E UM QUADRADO");
-    double* tensor3 = create_tensor("quadrado0.png", &size, false);
-    double predicao1 = modelo.predizer(tensor3)[0];
-    int resultado1 = modelo.testar(predicao1);
-    printf("Predicao: %f, Resultado: %s\n", predicao1, modelo.labels[resultado1]);
+	lucy.initialize_network(1);									// Inicialize 1 rede neural
+	lucy.create_model(0, "quadrados", "QUADRADO", NULL);		// Modelo 0 - treina a pasta "quadrados" e atribua label "QUADRADO"
+    lucy.show_response(0, "quadrados/quadrado-teste.png");		// Colete a resposta do modelo 0 baseado na imagem de entrada
+	lucy.close_network();										// Fecha todas as redes neurais
 	
-    free(tensor3);
-	free(modelo.camadas);
-	
+	//char* label = lucy.get_response(0, "quadrados/#3-nao-quadrado1.png");	// retorna a resposta da label
+	//printf("Resposta: %s\n", label);
     return 0;
 }
 

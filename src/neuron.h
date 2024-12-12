@@ -6,7 +6,7 @@ struct Neuron {
     // Inicializa pesos
     void iniciaPesos(int tamanho){
         quantEntradas = tamanho;
-        bias = 0.00000000000000999;
+        bias = 0.0;
         pesos = (double*) malloc(sizeof(double) * tamanho);
         srand(21);
         for(int i = 0; i < tamanho; i++)
@@ -18,12 +18,17 @@ struct Neuron {
 	}
 
     // Ativa o neurônio
-    double ativar(double* entradas){
+    double ativar(double* entradas, int size){
         double sum = 0;
-        for(int i = 0; i < quantEntradas; i++){
+        //cout << "quantEntradas: " << quantEntradas << endl;
+        for(int i = 0; i < size; i++){
         	sum += entradas[i] * pesos[i];
+        	//cout << "Entradas: " << entradas[i] << ", pesos: " << pesos[i] << endl;
 		}
+		//cout << "Bias: " << bias << endl;
+		//cout << "Soma antes do bias: " << sum << endl;
         sum += bias;
+        //cout << "Soma depois do bias: " << sum << endl;
         return sigmoid(sum);
     }
 
