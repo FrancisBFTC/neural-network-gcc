@@ -18,17 +18,14 @@ struct Neuron {
 	}
 
     // Ativa o neurônio
-    double ativar(double* entradas, int size){
+    double ativar(double* entradas, int quantNeuronios){
         double sum = 0;
-        //cout << "quantEntradas: " << quantEntradas << endl;
-        for(int i = 0; i < size; i++){
+        for(int i = 0; i < quantEntradas; i++){
         	sum += entradas[i] * pesos[i];
-        	//cout << "Entradas: " << entradas[i] << ", pesos: " << pesos[i] << endl;
 		}
-		//cout << "Bias: " << bias << endl;
-		//cout << "Soma antes do bias: " << sum << endl;
         sum += bias;
-        //cout << "Soma depois do bias: " << sum << endl;
+		if(quantNeuronios == 2)
+			return sum;
         return sigmoid(sum);
     }
 

@@ -52,7 +52,7 @@ void show_tensor(double tensor[256], int width, int height){
     printf("\n");
 }
 
-double* create_tensor(char const *filename, int *length, bool verbose){
+double* create_tensor(const char* filename, int *length, bool verbose){
 	int width, height, channels;
 	rgb_image = stbi_load(filename, &width, &height, &channels, 3);
 	*length = width * height;
@@ -61,10 +61,11 @@ double* create_tensor(char const *filename, int *length, bool verbose){
     rgb_to_grayscale(rgb_image, gray_image, width, height);
     create_grayscale_tensor(gray_image, tensor, width, height);
     if(verbose){
-    	printf("\nImagem carregada: %dx%d, canais: %d\n", width, height, channels);
+    	printf("Carregando arquivo: %s ...\n", filename);
+    	printf("Imagem carregada: %dx%d, canais: %d\n", width, height, channels);
     	printf("Tamanho da imagem: %d\n\n", *length);
-    	show_matrix(gray_image, width, height);
-    	show_tensor(tensor, width, height);
+    	//show_matrix(gray_image, width, height);
+    	//show_tensor(tensor, width, height);
 	}
     
     return tensor;

@@ -15,7 +15,7 @@ struct Layer{
     double* avancar(double* entradas){
         double* saidas = (double*) malloc(quantNeuronios * sizeof(double));
         for(int i = 0; i < quantNeuronios; i++)
-        	saidas[i] = neuronio[i].ativar(entradas, neuronio[i].quantEntradas);
+        	saidas[i] = neuronio[i].ativar(entradas, quantNeuronios);
         return saidas;
     }
 };
