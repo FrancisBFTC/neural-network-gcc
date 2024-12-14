@@ -7,7 +7,7 @@ struct Neural {
 	double learning_rate = 0.5;
 	double erroTotal = 0.0;
 	char* name;
-	const char* labels[2];
+	char labels[2][50];
 	
 	// Inicia as camadas
 	void iniciar(int layers[], int size){

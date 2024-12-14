@@ -2,9 +2,22 @@
 #include "src/tensor.h"
 #include "src/files.h"
 
+#define INPUTS 256
+#define HIDDEN1 128
+#define HIDDEN2 64
+#define OUTPUTS 2
+
+typedef struct {
+    double input_to_hidden1[INPUTS][HIDDEN1];
+    double hidden1_to_hidden2[HIDDEN1][HIDDEN2];
+    double hidden2_to_output[HIDDEN2][OUTPUTS];
+    char labels[OUTPUTS][50];  // Rótulos das saídas (até 50 caracteres cada)
+} NeuralNetworkData;
+
 struct Lucy {
 	
 	Neural* network;
+	NeuralNetworkData data;
 	int networkAmmt = 0;
 	int pos = 1;
 	bool isConfigured = false;
@@ -84,6 +97,85 @@ struct Lucy {
 	    return rotulos;
 	}
 	
+	void save_training(int model, const char *filename) {
+	    FILE *file = fopen(filename, "wb");
+	    if (!file) {
+	        perror("Erro ao abrir o arquivo");
+	        return;
+	    }
+	
+	    for(int i = 0; i < network[model].quantCamadas; i++){
+	    	for(int j = 0; j < network[model].camadas[i].quantNeuronios; j++){
+	    		for(int l = 0; l < network[model].camadas[i].neuronio[l].quantEntradas; l++){
+	    			switch(i){
+	    				case 0: data.input_to_hidden1[l][j] = network[model].camadas[i].neuronio[j].pesos[l];
+	    						break;
+	    				case 1: data.hidden1_to_hidden2[l][j] = network[model].camadas[i].neuronio[j].pesos[l];
+	    						break;
+	    				case 2: data.hidden2_to_output[l][j] = network[model].camadas[i].neuronio[j].pesos[l];
+	    						break;
+					}
+				}
+			}
+		}
+		int index = network[model].quantCamadas-1;
+		for(int i = 0; i < network[model].camadas[index].quantNeuronios; i++){
+			strcpy(data.labels[i], network[model].labels[i]);
+		}
+	
+	    // Escreve os pesos
+	    fwrite(data.input_to_hidden1, sizeof(double), INPUTS * HIDDEN1, file);
+	    fwrite(data.hidden1_to_hidden2, sizeof(double), HIDDEN1 * HIDDEN2, file);
+	    fwrite(data.hidden2_to_output, sizeof(double), HIDDEN2 * OUTPUTS, file);
+	
+	    // Escreve os labels
+	    fwrite(data.labels, sizeof(char), OUTPUTS * 50, file);
+	
+	    fclose(file);
+	    printf("Dados do modelo '%s' foram salvos!\n", filename);
+	}
+	
+	void load_training(int model, const char *filename) {
+	    FILE *file = fopen(filename, "rb");
+	    if (!file) {
+	        perror("Erro ao abrir o arquivo");
+	        return;
+	    }
+	
+	    // Lê os pesos
+	    fread(data.input_to_hidden1, sizeof(double), INPUTS * HIDDEN1, file);
+	    fread(data.hidden1_to_hidden2, sizeof(double), HIDDEN1 * HIDDEN2, file);
+	    fread(data.hidden2_to_output, sizeof(double), HIDDEN2 * OUTPUTS, file);
+	    
+	    // Lê os labels
+	    fread(data.labels, sizeof(char), OUTPUTS * 50, file);
+	    
+	    for(int i = 0; i < network[model].quantCamadas; i++){
+	    	for(int j = 0; j < network[model].camadas[i].quantNeuronios; j++){
+	    		for(int l = 0; l < network[model].camadas[i].neuronio[l].quantEntradas; l++){
+	    			switch(i){
+	    				case 0: network[model].camadas[i].neuronio[j].pesos[l] = data.input_to_hidden1[l][j];
+	    						break;
+	    				case 1: network[model].camadas[i].neuronio[j].pesos[l] = data.hidden1_to_hidden2[l][j];
+	    						break;
+	    				case 2: network[model].camadas[i].neuronio[j].pesos[l] = data.hidden2_to_output[l][j];
+	    						break;
+					}
+				}
+			}
+		}
+		int index = network[model].quantCamadas-1;
+		for(int i = 0; i < network[model].camadas[index].quantNeuronios; i++){
+			//for(int j = 0; j < strlen(data.labels[i]); j++)
+				strcpy(network[model].labels[i], data.labels[i]);
+				//network[model].labels[i][j] = data.labels[i][j];
+			//strcpy(network[model].labels[i], data.labels[i]);
+		}
+	
+	    fclose(file);
+	    printf("Dados do modelo '%s' foram carregados!\n", filename);
+	}
+	
 	void create_model(int index, int classes, char* name, const char* path, const char* pos_label, const char* neg_label){
 		int layers = 4;			// Quantidade de camadas para este modelo
 		//int classes = 2;		// Quantidade de classes para carregar: 2 -> Quadrado, Triangulo
@@ -95,8 +187,8 @@ struct Lucy {
 			return;
 		}
 		
-		network[index].labels[1] = pos_label;
-		network[index].labels[0] = neg_label;
+		strcpy(network[index].labels[1], pos_label);
+		strcpy(network[index].labels[0], neg_label);
 		network[index].name = name;
 					
 		// Chama a função para listar arquivos
@@ -131,6 +223,8 @@ struct Lucy {
 		    	close_image();
 				close_inputs(inputs, classes);
 	        }
+	        
+	        save_training(index, name);
 	        	
 	        close_inputs(label, classes_old);
 	        close_files(files, ammount);
@@ -141,8 +235,9 @@ struct Lucy {
 	
 	void show_response(int model, const char* filename){
 		int size = 0;
-		double* tensor = create_tensor(filename, &size, true);
 		int x = network[model].quantCamadas;
+		double* tensor = create_tensor(filename, &size, true);
+		load_training(model, network[model].name);
 		printf("Passando a imagem '%s' para previsao...\n", filename);
 	    double** predicao = network[model].predizer(tensor);
 	    int resultado = network[model].testar(predicao[x][0]);
