@@ -8,6 +8,10 @@
 #define OUTPUTS 2
 
 typedef struct {
+	int layers = 0;
+	int input = 0;
+	int hidden[2];
+	int output = 0;
     double input_to_hidden1[INPUTS][HIDDEN1];
     double bias_0[HIDDEN1];
     double hidden1_to_hidden2[HIDDEN1][HIDDEN2];
@@ -130,7 +134,25 @@ struct Lucy {
 		for(int i = 0; i < network[model].camadas[index].quantNeuronios; i++){
 			strcpy(data.labels[i], network[model].labels[i]);
 		}
-	
+		
+		data.layers = network[model].quantCamadas + 1;
+		data.input = network[model].camadas[0].neuronio[0].quantEntradas;
+		data.hidden[0] = network[model].camadas[0].quantNeuronios;
+		data.hidden[1] = network[model].camadas[1].quantNeuronios;
+		data.output = network[model].camadas[network[model].quantCamadas - 1].quantNeuronios;
+		
+		//printf("Camadas: %d\n", data.layers);
+		//printf("Entradas: %d\n", data.input);
+		//printf("Camada Oculta 1: %d\n", data.hidden[0]);
+		//printf("Camada Oculta 2: %d\n", data.hidden[1]);
+		//printf("Saidas: %d\n", data.output);
+		
+		// Escreve as configurações neurais
+		fwrite(&data.layers, sizeof(int), 1, file);
+		fwrite(&data.input, sizeof(int), 1, file);
+		fwrite(&data.hidden, sizeof(int), 2, file);
+		fwrite(&data.output, sizeof(int), 1, file);
+		
 	    // Escreve os pesos
 	    fwrite(data.input_to_hidden1, sizeof(double), INPUTS * HIDDEN1, file);
 	    fwrite(data.bias_0, sizeof(double), HIDDEN1, file);
@@ -153,6 +175,28 @@ struct Lucy {
 	        return;
 	    }
 	
+		if(!isConfigured){
+			network[model].name = (char*)filename;
+			
+			fread(&data.layers, sizeof(int), 1, file);
+			fread(&data.input, sizeof(int), 1, file);
+			fread(&data.hidden, sizeof(int), 2, file);
+			fread(&data.output, sizeof(int), 1, file);
+			
+			//printf("Camadas: %d\n", data.layers);
+			//printf("Entradas: %d\n", data.input);
+			//printf("Camada Oculta 1: %d\n", data.hidden[0]);
+			//printf("Camada Oculta 2: %d\n", data.hidden[1]);
+			//printf("Saidas: %d\n", data.output);
+			
+			build_layer(model, data.layers);					// Cria 4 camadas no modelo 0
+			build_input(model, data.input); 					// Cria 256 entradas iniciais no modelo 0
+			build_hidden(model, data.hidden[0]);				// Cria 128 neurônios na 1ª camada oculta do modelo 0
+			build_hidden(model, data.hidden[1]);				// Cria 64 neurônios na 2ª camada oculta do modelo 0
+			build_output(model, data.output);	 				// Cria 2 neurônios de saída na camada de saída (classes)
+			initialize_network(model, 0, 0);					// Inicialize a rede
+		}
+		
 	    // Lê os pesos
 	    fread(&data.input_to_hidden1, sizeof(double), INPUTS * HIDDEN1, file);
 	    fread(&data.bias_0, sizeof(double), HIDDEN1, file);
@@ -170,11 +214,9 @@ struct Lucy {
 	    			switch(i){
 	    				case 0: network[model].camadas[i].neuronio[j].pesos[l] = data.input_to_hidden1[l][j];
 	    						network[model].camadas[i].neuronio[j].bias = data.bias_0[j];
-	    						//printf("Bias %d lido: %f\n", j, network[model].camadas[i].neuronio[j].bias);
 	    						break;
 	    				case 1: network[model].camadas[i].neuronio[j].pesos[l] = data.hidden1_to_hidden2[l][j];
 	    						network[model].camadas[i].neuronio[j].bias = data.bias_1[j];
-	    						//printf("Peso %d lido: %f\n", l, network[model].camadas[i].neuronio[j].pesos[l]);
 	    						break;
 	    				case 2: network[model].camadas[i].neuronio[j].pesos[l] = data.hidden2_to_output[l][j];
 	    						network[model].camadas[i].neuronio[j].bias = data.bias_2[j];
@@ -244,6 +286,7 @@ struct Lucy {
 	        	
 	        close_inputs(label, classes_old);
 	        close_files(files, ammount);
+	        isConfigured = true;
 		}else{
 			printf("Nenhum arquivo encontrado ou erro ao acessar a pasta.\n");
 		}
@@ -251,9 +294,13 @@ struct Lucy {
 	
 	void show_response(int model, const char* filename){
 		int size = 0;
-		int x = network[model].quantCamadas;
 		double* tensor = create_tensor(filename, &size, true);
+		if(tensor == NULL){
+			printf("O arquivo nao foi encontrado!\n");
+			return;
+		}
 		load_training(model, network[model].name);
+		int x = network[model].quantCamadas;
 		printf("Passando a imagem '%s' para previsao...\n", filename);
 	    double** predicao = network[model].predizer(tensor);
 	    int resultado = network[model].testar(predicao[x][0]);

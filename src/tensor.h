@@ -55,6 +55,9 @@ void show_tensor(double tensor[256], int width, int height){
 double* create_tensor(const char* filename, int *length, bool verbose){
 	int width, height, channels;
 	rgb_image = stbi_load(filename, &width, &height, &channels, 3);
+	if(!rgb_image)
+		return NULL;
+		
 	*length = width * height;
 	double* tensor = (double*) malloc(*length * sizeof(double));
     gray_image = (unsigned char*) malloc(*length * sizeof(char));
