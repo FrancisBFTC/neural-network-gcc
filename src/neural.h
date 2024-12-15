@@ -103,7 +103,7 @@ struct Neural {
 	// Atualização de pesos baseado nos erros
 	void atualizaPesos(double** deltas, double** entradas){
 		for(int j = 0; j < quantCamadas; j++){
-			double* camadaEntradas = entradas[j]; //(j == 0) ? entradas : camadas[j - 1].avancar(entradas);
+			double* camadaEntradas = entradas[j];
 			for(int k = 0; k < camadas[j].quantNeuronios; k++){
 				for(int l = 0; l < camadas[j].neuronio[k].quantEntradas; l++){
 					camadas[j].neuronio[k].pesos[l] -= learning_rate * deltas[j][k] * camadaEntradas[l];

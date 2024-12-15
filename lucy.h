@@ -9,8 +9,11 @@
 
 typedef struct {
     double input_to_hidden1[INPUTS][HIDDEN1];
+    double bias_0[HIDDEN1];
     double hidden1_to_hidden2[HIDDEN1][HIDDEN2];
+    double bias_1[HIDDEN2];
     double hidden2_to_output[HIDDEN2][OUTPUTS];
+    double bias_2[OUTPUTS];
     char labels[OUTPUTS][50];  // Rótulos das saídas (até 50 caracteres cada)
 } NeuralNetworkData;
 
@@ -106,13 +109,18 @@ struct Lucy {
 	
 	    for(int i = 0; i < network[model].quantCamadas; i++){
 	    	for(int j = 0; j < network[model].camadas[i].quantNeuronios; j++){
-	    		for(int l = 0; l < network[model].camadas[i].neuronio[l].quantEntradas; l++){
+	    		for(int l = 0; l < network[model].camadas[i].neuronio[j].quantEntradas; l++){
 	    			switch(i){
 	    				case 0: data.input_to_hidden1[l][j] = network[model].camadas[i].neuronio[j].pesos[l];
+	    						data.bias_0[j] = network[model].camadas[i].neuronio[j].bias;
+	    						//printf("Bias %d salvo: %f\n", j, data.bias_0[j]);
 	    						break;
 	    				case 1: data.hidden1_to_hidden2[l][j] = network[model].camadas[i].neuronio[j].pesos[l];
+	    						data.bias_1[j] = network[model].camadas[i].neuronio[j].bias;
+	    						//printf("Peso %d salvo: %f\n", l, network[model].camadas[i].neuronio[j].pesos[l]);
 	    						break;
 	    				case 2: data.hidden2_to_output[l][j] = network[model].camadas[i].neuronio[j].pesos[l];
+	    						data.bias_2[j] = network[model].camadas[i].neuronio[j].bias;
 	    						break;
 					}
 				}
@@ -125,8 +133,11 @@ struct Lucy {
 	
 	    // Escreve os pesos
 	    fwrite(data.input_to_hidden1, sizeof(double), INPUTS * HIDDEN1, file);
+	    fwrite(data.bias_0, sizeof(double), HIDDEN1, file);
 	    fwrite(data.hidden1_to_hidden2, sizeof(double), HIDDEN1 * HIDDEN2, file);
+	    fwrite(data.bias_1, sizeof(double), HIDDEN2, file);
 	    fwrite(data.hidden2_to_output, sizeof(double), HIDDEN2 * OUTPUTS, file);
+	    fwrite(data.bias_2, sizeof(double), OUTPUTS, file);
 	
 	    // Escreve os labels
 	    fwrite(data.labels, sizeof(char), OUTPUTS * 50, file);
@@ -143,22 +154,30 @@ struct Lucy {
 	    }
 	
 	    // Lê os pesos
-	    fread(data.input_to_hidden1, sizeof(double), INPUTS * HIDDEN1, file);
-	    fread(data.hidden1_to_hidden2, sizeof(double), HIDDEN1 * HIDDEN2, file);
-	    fread(data.hidden2_to_output, sizeof(double), HIDDEN2 * OUTPUTS, file);
+	    fread(&data.input_to_hidden1, sizeof(double), INPUTS * HIDDEN1, file);
+	    fread(&data.bias_0, sizeof(double), HIDDEN1, file);
+	    fread(&data.hidden1_to_hidden2, sizeof(double), HIDDEN1 * HIDDEN2, file);
+	    fread(&data.bias_1, sizeof(double), HIDDEN2, file);
+	    fread(&data.hidden2_to_output, sizeof(double), HIDDEN2 * OUTPUTS, file);
+	    fread(&data.bias_2, sizeof(double), OUTPUTS, file);
 	    
 	    // Lê os labels
-	    fread(data.labels, sizeof(char), OUTPUTS * 50, file);
+	    fread(&data.labels, sizeof(char), OUTPUTS * 50, file);
 	    
 	    for(int i = 0; i < network[model].quantCamadas; i++){
 	    	for(int j = 0; j < network[model].camadas[i].quantNeuronios; j++){
-	    		for(int l = 0; l < network[model].camadas[i].neuronio[l].quantEntradas; l++){
+	    		for(int l = 0; l < network[model].camadas[i].neuronio[j].quantEntradas; l++){
 	    			switch(i){
 	    				case 0: network[model].camadas[i].neuronio[j].pesos[l] = data.input_to_hidden1[l][j];
+	    						network[model].camadas[i].neuronio[j].bias = data.bias_0[j];
+	    						//printf("Bias %d lido: %f\n", j, network[model].camadas[i].neuronio[j].bias);
 	    						break;
 	    				case 1: network[model].camadas[i].neuronio[j].pesos[l] = data.hidden1_to_hidden2[l][j];
+	    						network[model].camadas[i].neuronio[j].bias = data.bias_1[j];
+	    						//printf("Peso %d lido: %f\n", l, network[model].camadas[i].neuronio[j].pesos[l]);
 	    						break;
 	    				case 2: network[model].camadas[i].neuronio[j].pesos[l] = data.hidden2_to_output[l][j];
+	    						network[model].camadas[i].neuronio[j].bias = data.bias_2[j];
 	    						break;
 					}
 				}
@@ -166,10 +185,7 @@ struct Lucy {
 		}
 		int index = network[model].quantCamadas-1;
 		for(int i = 0; i < network[model].camadas[index].quantNeuronios; i++){
-			//for(int j = 0; j < strlen(data.labels[i]); j++)
-				strcpy(network[model].labels[i], data.labels[i]);
-				//network[model].labels[i][j] = data.labels[i][j];
-			//strcpy(network[model].labels[i], data.labels[i]);
+			strcpy(network[model].labels[i], data.labels[i]);
 		}
 	
 	    fclose(file);
