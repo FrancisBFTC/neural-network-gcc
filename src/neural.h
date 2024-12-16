@@ -7,7 +7,7 @@ struct Neural {
 	double learning_rate = 0.5;
 	double erroTotal = 0.0;
 	char* name;
-	char labels[2][50];
+	char** labels;//[2][50];
 	
 	// Inicia as camadas
 	void iniciar(int layers[], int size){
@@ -44,12 +44,10 @@ struct Neural {
 	    }
 	}
 	
-	int testar(double predicao){
-		//if (predicao > 0.4 && predicao <= 0.6) {
-		//    cout << "Indefinido. Precisa ajustar os parametros da rede neural." << endl;
-		//    return -1;
-		//}
-		return round(predicao);
+	int testar(double* predicao){
+		int index = 0;
+		while(!round(predicao[index])) index++;
+		return index;
 	}
 	
 	// Treinamento da rede neural

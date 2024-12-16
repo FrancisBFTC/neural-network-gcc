@@ -12,10 +12,20 @@ int main(int argc, char** argv)
 	Lucy lucy;
 	lucy.create_network(1);							// Crie uma rede neural
 	
+	char* dataset[] = { 
+		"quadrados", 			// Pasta de dataset 1
+		"triangulos" 			// Pasta de dataset 2
+	};
+	
+	char* labels[] = {
+		"QUADRADO",				// Label do classe 1
+		"TRIANGULO"				// Label do classe 2
+	};
+	
 	for(int i = 1; i < argc; i++){
 		if(strcmp(argv[i], "--train") == 0){
 			lucy.initialize_network(0, 5000, 0.5);	// Inicialize a rede 0 com 5000 épocas e 0.5 de aprendizado
-			lucy.create_model(0, 2, argv[++i], "quadrados", "QUADRADO", "TRIANGULO");	// Treinar o modelo 0
+			lucy.create_model(0, 2, argv[++i], dataset, labels); //"quadrados", "QUADRADO", "TRIANGULO");	// Treinar o modelo 0
 		}
 		
 		if(strcmp(argv[i], "--pred") == 0){
@@ -45,7 +55,7 @@ int main(int argc, char** argv)
 				
 				if(argv[i] != NULL){
 					// Restaurar stdout (opcional, útil se quiser voltar a imprimir no console)
-				    freopen("CON", "w", stdout); // No Windows, use "CON"
+				    freopen("CON", "w", stdout); // No Linux, use "/dev/tty"
 				    printf("As configuracoes foram salvas em '%s'\n", argv[i]);
 				}
 			}else{

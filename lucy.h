@@ -84,12 +84,12 @@ struct Lucy {
 		}
 	}
 	
-	double** create_input(int rows, int *cols, int index, char** filename, const char* path){
+	double** create_input(int classes, int *cols, int index, char** file[], char* path[]){
 		int length; 
 		stringstream pathfile;
-		double** tensor = (double**) malloc(rows * sizeof(double *));
-		for(int x = 0; x < rows; x++){
-			pathfile << path << "/" << filename[x+index];
+		double** tensor = (double**) malloc(classes * sizeof(double *));
+		for(int x = 0; x < classes; x++){
+			pathfile << path[x] << "/" << file[x][index];
 			tensor[x] = create_tensor(pathfile.str().c_str(), &length, true);
 			pathfile.str("");
 		}
@@ -137,9 +137,10 @@ struct Lucy {
 		
 		data.layers = network[model].quantCamadas + 1;
 		data.input = network[model].camadas[0].neuronio[0].quantEntradas;
-		data.hidden[0] = network[model].camadas[0].quantNeuronios;
-		data.hidden[1] = network[model].camadas[1].quantNeuronios;
-		data.output = network[model].camadas[network[model].quantCamadas - 1].quantNeuronios;
+		for(int j = 0; j < data.layers - 2; j++)
+			data.hidden[j] = network[model].camadas[j].quantNeuronios;
+		//data.hidden[1] = network[model].camadas[1].quantNeuronios;
+		data.output = network[model].camadas[index].quantNeuronios;
 		
 		//printf("Camadas: %d\n", data.layers);
 		//printf("Entradas: %d\n", data.input);
@@ -191,8 +192,10 @@ struct Lucy {
 			
 			build_layer(model, data.layers);					// Cria 4 camadas no modelo 0
 			build_input(model, data.input); 					// Cria 256 entradas iniciais no modelo 0
-			build_hidden(model, data.hidden[0]);				// Cria 128 neurônios na 1ª camada oculta do modelo 0
-			build_hidden(model, data.hidden[1]);				// Cria 64 neurônios na 2ª camada oculta do modelo 0
+			for(int j = 0; j < data.layers - 2; j++)
+				build_hidden(model, data.hidden[j]);			// Cria 128 e 64 neurônios na 1ª e 2ª camada oculta, respectivamente
+			
+			//build_hidden(model, data.hidden[1]);				// Cria 64 neurônios na 2ª camada oculta do modelo 0
 			build_output(model, data.output);	 				// Cria 2 neurônios de saída na camada de saída (classes)
 			initialize_network(model, 0, 0);					// Inicialize a rede
 		}
@@ -225,46 +228,54 @@ struct Lucy {
 				}
 			}
 		}
-		int index = network[model].quantCamadas-1;
-		for(int i = 0; i < network[model].camadas[index].quantNeuronios; i++){
+		network[model].labels = (char**) malloc(data.output * sizeof(char *));
+		for(int i = 0; i < data.output; i++){
+			network[model].labels[i] = (char*) malloc(strlen(data.labels[i]) * sizeof(char));
 			strcpy(network[model].labels[i], data.labels[i]);
 		}
+			
+		//for(int i = 0; i < neurons; i++){
+		//	strcpy(network[model].labels[i], data.labels[i]);
+		//}
 	
 	    fclose(file);
 	    printf("Dados do modelo '%s' foram carregados!\n", filename);
 	}
 	
-	void create_model(int index, int classes, char* name, const char* path, const char* pos_label, const char* neg_label){
-		int layers = 4;			// Quantidade de camadas para este modelo
-		//int classes = 2;		// Quantidade de classes para carregar: 2 -> Quadrado, Triangulo
+	void create_model(int index, int classes, char* name, char* path[], char* labels[]) {
+		int layers = 4;
 		int cols;
-		int ammount = 0;
+		int ammount[classes] = {0};
+		char** files[classes];
 		
 		if(classes != network[index].classes && network[index].classes != 0){
 			printf("Error: A quantidade de classes com neuronios de saida nao se coincidem!");
 			return;
 		}
 		
-		strcpy(network[index].labels[1], pos_label);
-		strcpy(network[index].labels[0], neg_label);
+		network[index].labels = (char**) malloc(classes * sizeof(char *));
+		for(int i = 0; i < classes; i++){
+			network[index].labels[i] = (char*) malloc(strlen(labels[i]) * sizeof(char));
+			strcpy(network[index].labels[i], labels[i]);
+		}
+		//strcpy(network[index].labels[1], labels[0]);
+		//strcpy(network[index].labels[0], labels[1]);
 		network[index].name = name;
 					
-		// Chama a função para listar arquivos
-	    char** files = list_files(path, &ammount);
+		for(int i = 0; i < classes; i++)
+	    	files[i] = list_files(path[i], &ammount[i]);
 	    	
 	    if(files != NULL){
-	    	printf("Arquivos encontrados (%d):\n", ammount);
+	    	printf("Arquivos encontrados (%d):\n", ammount[0]);
 	    		
 			double** label = create_label(classes, 2);
 			label[0][0] = 1;
 			label[0][1] = 0;
 			label[1][0] = 0;
 			label[1][1] = 1;
-			
-			int classes_old = classes;
 				    
-	   		for (int i = 0; i < ammount; i+=classes) {
-	   			classes = (classes + i > ammount) ? ammount - i : classes;
+	   		for (int i = 0; i < ammount[0]; i++) {
+	   			//classes = (classes + i > ammount[0]) ? ammount[0] - i : classes;
 	            double** inputs = create_input(classes, &cols, i, files, path);
 					
 				if(!isConfigured && i == 0){
@@ -284,8 +295,9 @@ struct Lucy {
 	        
 	        save_training(index, name);
 	        	
-	        close_inputs(label, classes_old);
-	        close_files(files, ammount);
+	        close_inputs(label, classes);
+	        for(int i = 0; i < classes; i++)
+	        	close_files(files[i], ammount[i]);
 	        isConfigured = true;
 		}else{
 			printf("Nenhum arquivo encontrado ou erro ao acessar a pasta.\n");
@@ -303,13 +315,14 @@ struct Lucy {
 		int x = network[model].quantCamadas;
 		printf("Passando a imagem '%s' para previsao...\n", filename);
 	    double** predicao = network[model].predizer(tensor);
-	    int resultado = network[model].testar(predicao[x][0]);
+	    int resultado = network[model].testar(predicao[x]);
 	    printf("Predicao 0: %f, Predicao 1: %f, Resultado: %s\n", predicao[x][0], predicao[x][1], network[model].labels[resultado]);
-	    printf("%s -> %.1f%%, %s -> %.1f%%", network[model].labels[1], (predicao[x][0] * 100.0), network[model].labels[0], (predicao[x][1] * 100.0));
+	    printf("%s -> %.1f%%, %s -> %.1f%%", network[model].labels[0], (predicao[x][0] * 100.0), network[model].labels[1], (predicao[x][1] * 100.0));
 	    free(tensor);
 	    close_image();
 	}
 	
+	/*
 	char* get_response(int model, const char* filename){
 		int size = 0;
 		double* tensor = create_tensor(filename, &size, true);
@@ -319,6 +332,7 @@ struct Lucy {
 	    free(tensor);
 	    return (char*) network[model].labels[resultado1];
 	}
+	*/
 	
 	void close_inputs(double** inputs, int size){
 		for (int i = 0; i < size; i++) 
@@ -335,7 +349,12 @@ struct Lucy {
 	void close_network(){
 		for(int i = 0; i < networkAmmt; i++){
 			free(network[i].camadas);
-			free(camadas[i]);	
+			free(camadas[i]);
+			
+			for(int j = 0; j < data.output; j++){
+				free(network[i].labels[j]);
+			}
+			free(network[i].labels);
 		}
 		free(network);
 		free(camadas);
