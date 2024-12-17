@@ -12,13 +12,15 @@ typedef struct {
 	int input = 0;
 	int hidden[2];
 	int output = 0;
-    double input_to_hidden1[INPUTS][HIDDEN1];
-    double bias_0[HIDDEN1];
-    double hidden1_to_hidden2[HIDDEN1][HIDDEN2];
-    double bias_1[HIDDEN2];
-    double hidden2_to_output[HIDDEN2][OUTPUTS];
-    double bias_2[OUTPUTS];
-    char labels[OUTPUTS][50];  // Rótulos das saídas (até 50 caracteres cada)
+	double*** weights;
+	double** bias;
+    //double input_to_hidden1[INPUTS][HIDDEN1];
+    //double bias_0[HIDDEN1];
+    //double hidden1_to_hidden2[HIDDEN1][HIDDEN2];
+    //double bias_1[HIDDEN2];
+    //double hidden2_to_output[HIDDEN2][OUTPUTS];
+    //double bias_2[OUTPUTS];
+    char** labels;//[OUTPUTS][50];  // Rótulos das saídas (até 50 caracteres cada)
 } NeuralNetworkData;
 
 struct Lucy {
@@ -111,17 +113,52 @@ struct Lucy {
 	        return;
 	    }
 	
+		int index = network[model].quantCamadas;
+		data.layers = network[model].quantCamadas + 1;
+		data.input = network[model].camadas[0].neuronio[0].quantEntradas;
+		for(int j = 0; j < data.layers - 2; j++)
+			data.hidden[j] = network[model].camadas[j].quantNeuronios;
+		data.output = network[model].camadas[index - 1].quantNeuronios;
+		
+		// Escreve as configurações neurais
+		fwrite(&data.layers, sizeof(int), 1, file);
+		fwrite(&data.input, sizeof(int), 1, file);
+		fwrite(&data.hidden, sizeof(int), 2, file);
+		fwrite(&data.output, sizeof(int), 1, file);
+		
+		data.weights = (double***) malloc((data.layers - 1) * sizeof(double**));
+		data.bias = (double**) malloc((data.layers - 1) * sizeof(double*));
+		for(int i = 0; i < network[model].quantCamadas; i++){
+			
+			int neuron_length = network[model].camadas[i].quantNeuronios;
+	    	int input_length = network[model].camadas[i].neuronio[0].quantEntradas;
+			data.weights[i] = (double**) malloc(neuron_length * sizeof(double*));
+			data.bias[i] = (double*) malloc(neuron_length * sizeof(double));
+	    	
+			for(int j = 0; j < neuron_length; j++){
+	    		
+				data.weights[i][j] = (double*) malloc(input_length * sizeof(double));
+
+				for(int k = 0; k < input_length; k++){
+					data.weights[i][j][k] = network[model].camadas[i].neuronio[j].pesos[k];
+					fwrite(&data.weights[i][j][k], sizeof(double), 1, file);	// input_length * neuron_length
+				}
+				data.bias[i][j] = network[model].camadas[i].neuronio[j].bias;
+				fwrite(&data.bias[i][j], sizeof(double), 1, file);	// neuron_length
+			}	
+	    	
+		}
+		
+		/*
 	    for(int i = 0; i < network[model].quantCamadas; i++){
 	    	for(int j = 0; j < network[model].camadas[i].quantNeuronios; j++){
 	    		for(int l = 0; l < network[model].camadas[i].neuronio[j].quantEntradas; l++){
 	    			switch(i){
 	    				case 0: data.input_to_hidden1[l][j] = network[model].camadas[i].neuronio[j].pesos[l];
 	    						data.bias_0[j] = network[model].camadas[i].neuronio[j].bias;
-	    						//printf("Bias %d salvo: %f\n", j, data.bias_0[j]);
 	    						break;
 	    				case 1: data.hidden1_to_hidden2[l][j] = network[model].camadas[i].neuronio[j].pesos[l];
 	    						data.bias_1[j] = network[model].camadas[i].neuronio[j].bias;
-	    						//printf("Peso %d salvo: %f\n", l, network[model].camadas[i].neuronio[j].pesos[l]);
 	    						break;
 	    				case 2: data.hidden2_to_output[l][j] = network[model].camadas[i].neuronio[j].pesos[l];
 	    						data.bias_2[j] = network[model].camadas[i].neuronio[j].bias;
@@ -130,77 +167,69 @@ struct Lucy {
 				}
 			}
 		}
-		int index = network[model].quantCamadas-1;
-		for(int i = 0; i < network[model].camadas[index].quantNeuronios; i++){
-			strcpy(data.labels[i], network[model].labels[i]);
-		}
-		
-		data.layers = network[model].quantCamadas + 1;
-		data.input = network[model].camadas[0].neuronio[0].quantEntradas;
-		for(int j = 0; j < data.layers - 2; j++)
-			data.hidden[j] = network[model].camadas[j].quantNeuronios;
-		//data.hidden[1] = network[model].camadas[1].quantNeuronios;
-		data.output = network[model].camadas[index].quantNeuronios;
-		
-		//printf("Camadas: %d\n", data.layers);
-		//printf("Entradas: %d\n", data.input);
-		//printf("Camada Oculta 1: %d\n", data.hidden[0]);
-		//printf("Camada Oculta 2: %d\n", data.hidden[1]);
-		//printf("Saidas: %d\n", data.output);
-		
-		// Escreve as configurações neurais
-		fwrite(&data.layers, sizeof(int), 1, file);
-		fwrite(&data.input, sizeof(int), 1, file);
-		fwrite(&data.hidden, sizeof(int), 2, file);
-		fwrite(&data.output, sizeof(int), 1, file);
+		*/
 		
 	    // Escreve os pesos
-	    fwrite(data.input_to_hidden1, sizeof(double), INPUTS * HIDDEN1, file);
-	    fwrite(data.bias_0, sizeof(double), HIDDEN1, file);
-	    fwrite(data.hidden1_to_hidden2, sizeof(double), HIDDEN1 * HIDDEN2, file);
-	    fwrite(data.bias_1, sizeof(double), HIDDEN2, file);
-	    fwrite(data.hidden2_to_output, sizeof(double), HIDDEN2 * OUTPUTS, file);
-	    fwrite(data.bias_2, sizeof(double), OUTPUTS, file);
+	    /*
+	    for(int i = 0; i < index; i++){
+	    	int neuron_length = network[model].camadas[i].quantNeuronios;
+	    	int input_length = network[model].camadas[i].neuronio[0].quantEntradas;
+	    	fwrite(data.weights[i], sizeof(double), input_length * neuron_length, file);
+	    	fwrite(data.bias[i], sizeof(double), neuron_length, file);
+		}
+		*/
+	    	
+	    data.labels = (char**) malloc(data.output * sizeof(char *));
+		for(int i = 0; i < data.output; i++){
+			data.labels[i] = (char*) malloc(50 * sizeof(char));
+			strcpy(data.labels[i], network[model].labels[i]);
+			fwrite(data.labels[i], sizeof(char), 50, file);
+		}
+		
+	    //fwrite(data.input_to_hidden1, sizeof(double), INPUTS * HIDDEN1, file);
+	    //fwrite(data.bias_0, sizeof(double), HIDDEN1, file);
+	    //fwrite(data.hidden1_to_hidden2, sizeof(double), HIDDEN1 * HIDDEN2, file);
+	    //fwrite(data.bias_1, sizeof(double), HIDDEN2, file);
+	    //fwrite(data.hidden2_to_output, sizeof(double), HIDDEN2 * OUTPUTS, file);
+	    //fwrite(data.bias_2, sizeof(double), OUTPUTS, file);
 	
 	    // Escreve os labels
-	    fwrite(data.labels, sizeof(char), OUTPUTS * 50, file);
+	    //fwrite(data.labels, sizeof(char), data.output * 50, file);
 	
 	    fclose(file);
 	    printf("Dados do modelo '%s' foram salvos!\n", filename);
 	}
 	
 	void load_training(int model, const char *filename) {
+		printf("Entrou em Load_Training\n");
 	    FILE *file = fopen(filename, "rb");
 	    if (!file) {
 	        perror("Erro ao abrir o arquivo");
 	        return;
 	    }
 	
+		printf("Entrou em Load_Training 2 \n");
+		
+		fread(&data.layers, sizeof(int), 1, file);
+		fread(&data.input, sizeof(int), 1, file);
+		fread(&data.hidden, sizeof(int), 2, file);
+		fread(&data.output, sizeof(int), 1, file);
+		
+		printf("Entrou em Load_Training -> camadas: %s\n", data.layers);
+		
 		if(!isConfigured){
 			network[model].name = (char*)filename;
-			
-			fread(&data.layers, sizeof(int), 1, file);
-			fread(&data.input, sizeof(int), 1, file);
-			fread(&data.hidden, sizeof(int), 2, file);
-			fread(&data.output, sizeof(int), 1, file);
-			
-			//printf("Camadas: %d\n", data.layers);
-			//printf("Entradas: %d\n", data.input);
-			//printf("Camada Oculta 1: %d\n", data.hidden[0]);
-			//printf("Camada Oculta 2: %d\n", data.hidden[1]);
-			//printf("Saidas: %d\n", data.output);
 			
 			build_layer(model, data.layers);					// Cria 4 camadas no modelo 0
 			build_input(model, data.input); 					// Cria 256 entradas iniciais no modelo 0
 			for(int j = 0; j < data.layers - 2; j++)
 				build_hidden(model, data.hidden[j]);			// Cria 128 e 64 neurônios na 1ª e 2ª camada oculta, respectivamente
-			
-			//build_hidden(model, data.hidden[1]);				// Cria 64 neurônios na 2ª camada oculta do modelo 0
 			build_output(model, data.output);	 				// Cria 2 neurônios de saída na camada de saída (classes)
 			initialize_network(model, 0, 0);					// Inicialize a rede
 		}
 		
 	    // Lê os pesos
+	    /*
 	    fread(&data.input_to_hidden1, sizeof(double), INPUTS * HIDDEN1, file);
 	    fread(&data.bias_0, sizeof(double), HIDDEN1, file);
 	    fread(&data.hidden1_to_hidden2, sizeof(double), HIDDEN1 * HIDDEN2, file);
@@ -228,15 +257,37 @@ struct Lucy {
 				}
 			}
 		}
+		*/
+		
+		data.weights = (double***) malloc((data.layers - 1) * sizeof(double**));
+		data.bias = (double**) malloc((data.layers - 1) * sizeof(double*));
+		for(int i = 0; i < network[model].quantCamadas; i++){
+			
+			int neuron_length = network[model].camadas[i].quantNeuronios;
+	    	int input_length = network[model].camadas[i].neuronio[0].quantEntradas;
+	    	data.weights[i] = (double**) malloc(neuron_length * sizeof(double*));
+			data.bias[i] = (double*) malloc(neuron_length * sizeof(double));
+	    	
+			for(int j = 0; j < neuron_length; j++){
+	    		
+				data.weights[i][j] = (double*) malloc(input_length * sizeof(double));
+	    		
+				for(int k = 0; k < input_length; k++){
+					fread(&data.weights[i][j][k], sizeof(double), 1, file);	// input_length * neuron_length
+					network[model].camadas[i].neuronio[j].pesos[k] = data.weights[i][j][k];
+				}
+				fread(&data.bias[i][j], sizeof(double), 1, file);	// neuron_length
+				network[model].camadas[i].neuronio[j].bias = data.bias[i][j];
+			}
+		}
+		
 		network[model].labels = (char**) malloc(data.output * sizeof(char *));
+		data.labels = (char**) malloc(data.output * sizeof(char *));
 		for(int i = 0; i < data.output; i++){
-			network[model].labels[i] = (char*) malloc(strlen(data.labels[i]) * sizeof(char));
+			fread(data.labels[i], sizeof(char), 50, file);
+			network[model].labels[i] = (char*) malloc(50 * sizeof(char));
 			strcpy(network[model].labels[i], data.labels[i]);
 		}
-			
-		//for(int i = 0; i < neurons; i++){
-		//	strcpy(network[model].labels[i], data.labels[i]);
-		//}
 	
 	    fclose(file);
 	    printf("Dados do modelo '%s' foram carregados!\n", filename);
